@@ -51,4 +51,13 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DOORDASH_COOKIES: ${{ secrets.DOORDASH_COOKIES }}
+          DOORDASH_DELIVERY_ADDRESS: ${{ secrets.DOORDASH_DELIVERY_ADDRESS }}
           PICKS_PER_DAY: 3
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doordash-screenshots
+          path: screenshots/
+          if-no-files-found: ignore
