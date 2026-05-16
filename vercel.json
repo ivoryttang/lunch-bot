@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/slack", "destination": "/api/slack" }
+  ],
+  "functions": {
+    "api/slack.js": {
+      "maxDuration": 10
+    }
+  }
+}

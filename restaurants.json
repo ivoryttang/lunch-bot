@@ -1,0 +1,9 @@
+{
+  "restaurants": [
+    { "name": "Chipotle", "url": "https://www.doordash.com/store/chipotle-mexican-grill-123456/", "active": true },
+    { "name": "Sweetgreen", "url": "https://www.doordash.com/store/sweetgreen-123456/", "active": true },
+    { "name": "Tender Loving Empire", "url": "https://www.doordash.com/store/tender-loving-empire-123456/", "active": true },
+    { "name": "Pizza My Heart", "url": "https://www.doordash.com/store/pizza-my-heart-123456/", "active": true },
+    { "name": "Pho Noodle House", "url": "https://www.doordash.com/store/pho-noodle-house-123456/", "active": true }
+  ]
+}
