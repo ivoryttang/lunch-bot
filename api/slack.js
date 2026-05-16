@@ -1,6 +1,4 @@
 // Vercel serverless function — receives Slack slash commands for /lunch
-// Disable Vercel's default body parsing so we can verify the raw request signature.
-module.exports.config = { api: { bodyParser: false } };
 
 const crypto = require('crypto');
 
@@ -47,21 +45,31 @@ async function ghPut(data, sha, commitMessage) {
 // ── Slack request verification ────────────────────────────────────────────────
 
 function verifySignature(headers, rawBody) {
+  if (!SLACK_SIGNING_SECRET) return false;
   const ts = headers['x-slack-request-timestamp'];
   const sig = headers['x-slack-signature'];
   if (!ts || !sig) return false;
-  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false; // replay guard
-  const expected =
-    'v0=' +
-    crypto
-      .createHmac('sha256', SLACK_SIGNING_SECRET)
-      .update(`v0:${ts}:${rawBody}`)
-      .digest('hex');
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false;
   try {
+    const expected =
+      'v0=' +
+      crypto
+        .createHmac('sha256', SLACK_SIGNING_SECRET)
+        .update(`v0:${ts}:${rawBody}`)
+        .digest('hex');
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
   } catch {
     return false;
   }
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    req.on('error', reject);
+  });
 }
 
 // ── Response helpers ──────────────────────────────────────────────────────────
@@ -71,25 +79,32 @@ const inChannel = text => ({ response_type: 'in_channel', text });
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).end('Method Not Allowed');
-
-  // Collect raw body for signature check
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const rawBody = Buffer.concat(chunks).toString();
-
-  if (!verifySignature(req.headers, rawBody)) {
-    return res.status(401).end('Unauthorized');
-  }
-
-  const payload = Object.fromEntries(new URLSearchParams(rawBody));
-  const [subcommand = '', ...rest] = (payload.text || '').trim().split(/\s+/);
-  const arg = rest.join(' ').trim();
-
+async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
+  if (req.method !== 'POST') {
+    return res.status(200).json(ephemeral('Only POST requests are supported'));
+  }
+
   try {
+    const rawBody = await readRawBody(req);
+
+    if (!verifySignature(req.headers, rawBody)) {
+      // Return 200 so Slack shows our message instead of "did not respond"
+      return res.status(200).json(
+        ephemeral(
+          !SLACK_SIGNING_SECRET
+            ? '⚠️ SLACK_SIGNING_SECRET is not configured in Vercel env vars'
+            : '⚠️ Request signature invalid'
+        )
+      );
+    }
+
+    const payload = Object.fromEntries(new URLSearchParams(rawBody));
+    const [subcommand = '', ...rest] = (payload.text || '').trim().split(/\s+/);
+    const arg = rest.join(' ').trim();
+
+    try {
     switch (subcommand.toLowerCase()) {
       case '':
       case 'help': {
@@ -214,9 +229,16 @@ module.exports = async (req, res) => {
       default:
         return res.json(ephemeral(`Unknown command \`${subcommand}\` — try \`/lunch help\``));
     }
+    } catch (err) {
+      console.error(err);
+      return res.status(200).json(ephemeral(`⚠️ Error: ${err.message}`));
+    }
   } catch (err) {
-    console.error(err);
-    // Always return 200 to Slack so it doesn't show a generic error
-    return res.status(200).json(ephemeral(`⚠️ Error: ${err.message}`));
+    console.error('Handler error:', err);
+    return res.status(200).json(ephemeral(`⚠️ Server error: ${err.message}`));
   }
-};
+}
+
+// Must be set on the exported function — assigning module.exports afterward would wipe this
+handler.config = { api: { bodyParser: false } };
+module.exports = handler;

@@ -1,4 +1,5 @@
 {
+  "alias": ["ivory-lunch-bot.vercel.app"],
   "rewrites": [
     { "source": "/slack", "destination": "/api/slack" }
   ],

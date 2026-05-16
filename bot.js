@@ -1,12 +1,10 @@
 #!/usr/bin/env node
-// Reads restaurants.json, picks N random active ones, posts to Slack.
-// Run by GitHub Actions on a schedule, or manually: node bot.js
-
 const fs = require('fs');
 const path = require('path');
 
 const WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 const PICKS_PER_DAY = parseInt(process.env.PICKS_PER_DAY || '3', 10);
+const USE_GROUP_ORDERS = process.env.DOORDASH_COOKIES ? true : false;
 
 if (!WEBHOOK_URL) {
   console.error('SLACK_WEBHOOK_URL is not set');
@@ -16,7 +14,6 @@ if (!WEBHOOK_URL) {
 function pickRestaurants(restaurants, n) {
   const active = restaurants.filter(r => r.active !== false);
   if (active.length === 0) return [];
-  // Fisher-Yates shuffle
   for (let i = active.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [active[i], active[j]] = [active[j], active[i]];
@@ -25,13 +22,21 @@ function pickRestaurants(restaurants, n) {
 }
 
 async function main() {
-  const filePath = path.join(__dirname, 'restaurants.json');
-  const { restaurants } = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  const picks = pickRestaurants(restaurants, PICKS_PER_DAY);
+  const { restaurants } = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'restaurants.json'), 'utf8')
+  );
+  let picks = pickRestaurants(restaurants, PICKS_PER_DAY);
 
   if (picks.length === 0) {
     console.log('No active restaurants — nothing to post.');
     return;
+  }
+
+  // Create DoorDash group orders if credentials are available
+  if (USE_GROUP_ORDERS) {
+    console.log('Creating DoorDash group orders...');
+    const { createGroupOrders } = require('./doordash');
+    picks = await createGroupOrders(picks);
   }
 
   const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -39,38 +44,40 @@ async function main() {
     weekday: 'long',
     timeZone: 'America/Los_Angeles',
   });
+  const activeCount = restaurants.filter(r => r.active !== false).length;
 
   const lines = picks.map((r, i) => {
     const emoji = emojis[i] || `${i + 1}.`;
-    return r.url
-      ? `${emoji} *${r.name}* — <${r.url}|Order on DoorDash>`
-      : `${emoji} *${r.name}*`;
+    // Prefer group order link, fall back to store link, fall back to just the name
+    const link = r.groupOrderUrl || r.url;
+    const label = r.groupOrderUrl ? 'Join group order' : r.url ? 'View on DoorDash' : null;
+    return link && label ? `${emoji} *${r.name}* — <${link}|${label}>` : `${emoji} *${r.name}*`;
   });
 
-  const activeCount = restaurants.filter(r => r.active !== false).length;
+  const orderNote = USE_GROUP_ORDERS
+    ? 'Click your pick to join the group order. Someone click checkout by noon!'
+    : 'React to vote, then someone create the group order and drop the link below 👇';
 
   const message = {
     blocks: [
       {
         type: 'header',
-        text: { type: 'plain_text', text: `🍽️ ${day} Lunch Picks`, emoji: true },
+        text: { type: 'plain_text', text: `🍽️ ${day} Lunch`, emoji: true },
       },
       {
         type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `Today's options are in! Vote with a reaction or click to order:\n\n${lines.join('\n')}`,
-        },
+        text: { type: 'mrkdwn', text: lines.join('\n') },
       },
       {
-        type: 'divider',
+        type: 'section',
+        text: { type: 'mrkdwn', text: orderNote },
       },
       {
         type: 'context',
         elements: [
           {
             type: 'mrkdwn',
-            text: `_${activeCount} restaurants in the pool · Use \`/lunch\` to add, remove, or preview_`,
+            text: `_${activeCount} restaurants in the pool · \`/lunch\` to manage_`,
           },
         ],
       },
@@ -83,11 +90,7 @@ async function main() {
     body: JSON.stringify(message),
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Slack returned ${res.status}: ${body}`);
-  }
-
+  if (!res.ok) throw new Error(`Slack returned ${res.status}: ${await res.text()}`);
   console.log(`✅ Posted ${picks.length} picks (${picks.map(r => r.name).join(', ')})`);
 }
 

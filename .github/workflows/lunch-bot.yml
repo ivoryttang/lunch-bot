@@ -6,22 +6,17 @@ on:
     - cron: '45 17 * * 1-5'
     # 10:45 AM PST (UTC-8, Nov–Mar)  → 18:45 UTC
     - cron: '45 18 * * 1-5'
-  workflow_dispatch: # Manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
   post-lunch:
     runs-on: ubuntu-latest
-    # Prevent the DST double-fire by checking the current UTC hour matches the
-    # season. GitHub Actions doesn't support timezone-aware cron natively, so we
-    # let both triggers fire but skip if it's the wrong one for the season.
     steps:
       - name: Check timezone gate
         id: gate
         run: |
           HOUR=$(date -u +%-H)
           MONTH=$(date -u +%-m)
-          # PDT: March(3)–November(11) → expect 17 UTC
-          # PST: November(11)–March(3) → expect 18 UTC
           if [ "$MONTH" -ge 3 ] && [ "$MONTH" -lt 11 ]; then
             EXPECTED=17
           else
@@ -41,9 +36,18 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: steps.gate.outputs.skip != 'true'
+        run: npx playwright install chromium --with-deps
+
       - name: Post to Slack
         if: steps.gate.outputs.skip != 'true'
         run: node bot.js
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DOORDASH_COOKIES: ${{ secrets.DOORDASH_COOKIES }}
           PICKS_PER_DAY: 3
