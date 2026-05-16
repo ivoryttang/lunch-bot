@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 const PICKS_PER_DAY = parseInt(process.env.PICKS_PER_DAY || '3', 10);
 const USE_GROUP_ORDERS = process.env.DOORDASH_COOKIES ? true : false;

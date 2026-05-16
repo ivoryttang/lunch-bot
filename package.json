@@ -2,12 +2,15 @@
   "name": "lunch-bot",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "post": "node bot.js",
     "dev": "vercel dev"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "playwright": "^1.44.0"
   }
 }

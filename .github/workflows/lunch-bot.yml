@@ -1,12 +1,7 @@
 name: Lunch Bot
 
 on:
-  schedule:
-    # 10:45 AM PDT (UTC-7, Mar–Nov)  → 17:45 UTC
-    - cron: '45 17 * * 1-5'
-    # 10:45 AM PST (UTC-8, Nov–Mar)  → 18:45 UTC
-    - cron: '45 18 * * 1-5'
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger only — daily posting runs via launchd on local Mac
 
 jobs:
   post-lunch:
