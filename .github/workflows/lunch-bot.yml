@@ -12,8 +12,9 @@ jobs:
   post-lunch:
     runs-on: ubuntu-latest
     steps:
-      - name: Check timezone gate
+      - name: Check timezone gate (scheduled runs only)
         id: gate
+        if: github.event_name == 'schedule'
         run: |
           HOUR=$(date -u +%-H)
           MONTH=$(date -u +%-m)
