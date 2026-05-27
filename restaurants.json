@@ -38,7 +38,7 @@
     },
     {
       "name": "Little Sweet",
-      "active": true
+      "active": false
     },
     {
       "name": "Chipotle Mexican Grill",
@@ -50,11 +50,11 @@
     },
     {
       "name": "KFC",
-      "active": true
+      "active": false
     },
     {
       "name": "Starbird Salads",
-      "active": true
+      "active": false
     },
     {
       "name": "4505 Burgers & BBQ",
@@ -174,7 +174,7 @@
     },
     {
       "name": "Sharetea",
-      "active": true
+      "active": false
     },
     {
       "name": "LaoTable",
@@ -270,6 +270,21 @@
     },
     {
       "name": "Hot Sauce & Panko",
+      "active": true
+    },
+    {
+      "name": "Arepas",
+      "url": "",
+      "active": true
+    },
+    {
+      "name": "Shanghai Dumpling King",
+      "url": "",
+      "active": true
+    },
+    {
+      "name": "Sanppo Restaurant",
+      "url": "",
       "active": true
     }
   ]
