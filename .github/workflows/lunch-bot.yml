@@ -1,58 +1,25 @@
-name: Lunch Bot
+name: Dinner Bot
 
 on:
   workflow_dispatch: # Manual trigger only — daily posting runs via launchd on local Mac
 
 jobs:
-  post-lunch:
+  post-dinner:
     runs-on: ubuntu-latest
     steps:
-      - name: Check timezone gate (scheduled runs only)
-        id: gate
-        if: github.event_name == 'schedule'
-        run: |
-          HOUR=$(date -u +%-H)
-          MONTH=$(date -u +%-m)
-          if [ "$MONTH" -ge 3 ] && [ "$MONTH" -lt 11 ]; then
-            EXPECTED=17
-          else
-            EXPECTED=18
-          fi
-          if [ "$HOUR" -ne "$EXPECTED" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout repo
-        if: steps.gate.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node
-        if: steps.gate.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        if: steps.gate.outputs.skip != 'true'
         run: npm ci
 
-      - name: Install Playwright browsers
-        if: steps.gate.outputs.skip != 'true'
-        run: npx playwright install chromium --with-deps
-
       - name: Post to Slack
-        if: steps.gate.outputs.skip != 'true'
         run: node bot.js
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          DOORDASH_COOKIES: ${{ secrets.DOORDASH_COOKIES }}
-          DOORDASH_DELIVERY_ADDRESS: ${{ secrets.DOORDASH_DELIVERY_ADDRESS }}
-          PICKS_PER_DAY: 3
-
-      - name: Upload debug screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: doordash-screenshots
-          path: screenshots/
-          if-no-files-found: ignore
+          PICKS_PER_DAY: 2

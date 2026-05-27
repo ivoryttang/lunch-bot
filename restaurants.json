@@ -1,9 +1,276 @@
 {
   "restaurants": [
-    { "name": "Chipotle", "url": "https://www.doordash.com/store/chipotle-mexican-grill-123456/", "active": true },
-    { "name": "Sweetgreen", "url": "https://www.doordash.com/store/sweetgreen-123456/", "active": true },
-    { "name": "Tender Loving Empire", "url": "https://www.doordash.com/store/tender-loving-empire-123456/", "active": true },
-    { "name": "Pizza My Heart", "url": "https://www.doordash.com/store/pizza-my-heart-123456/", "active": true },
-    { "name": "Pho Noodle House", "url": "https://www.doordash.com/store/pho-noodle-house-123456/", "active": true }
+    {
+      "name": "Tacko",
+      "active": true
+    },
+    {
+      "name": "Palmetto Superfoods",
+      "active": true
+    },
+    {
+      "name": "Gott's Roadside",
+      "active": true
+    },
+    {
+      "name": "Roam Artisan Burgers",
+      "active": true
+    },
+    {
+      "name": "The Baked Bear",
+      "active": true
+    },
+    {
+      "name": "Wingstop",
+      "active": true
+    },
+    {
+      "name": "Sweetgreen",
+      "active": true
+    },
+    {
+      "name": "Fish in the box",
+      "active": true
+    },
+    {
+      "name": "Curry Up Now",
+      "active": true
+    },
+    {
+      "name": "Little Sweet",
+      "active": true
+    },
+    {
+      "name": "Chipotle Mexican Grill",
+      "active": true
+    },
+    {
+      "name": "Super Duper Burgers",
+      "active": true
+    },
+    {
+      "name": "KFC",
+      "active": true
+    },
+    {
+      "name": "Starbird Salads",
+      "active": true
+    },
+    {
+      "name": "4505 Burgers & BBQ",
+      "active": true
+    },
+    {
+      "name": "Aria Korean Street Food",
+      "active": true
+    },
+    {
+      "name": "Escape From New York Pizza",
+      "active": true
+    },
+    {
+      "name": "Pink Onion",
+      "active": true
+    },
+    {
+      "name": "The Cheesecake Factory",
+      "active": true
+    },
+    {
+      "name": "Slice House",
+      "active": true
+    },
+    {
+      "name": "Kimbap Heaven",
+      "active": true
+    },
+    {
+      "name": "Arepas Inc.",
+      "active": true
+    },
+    {
+      "name": "Ben Thai Cafe",
+      "active": true
+    },
+    {
+      "name": "Onigilly Japanese Kitchen",
+      "active": true
+    },
+    {
+      "name": "Marufuku Ramen",
+      "active": true
+    },
+    {
+      "name": "YH-Beijing",
+      "active": true
+    },
+    {
+      "name": "Dumpling Union",
+      "active": true
+    },
+    {
+      "name": "Delarosa",
+      "active": true
+    },
+    {
+      "name": "Farmhouse Kitchen Thai Cuisine",
+      "active": true
+    },
+    {
+      "name": "Surisan",
+      "active": true
+    },
+    {
+      "name": "Osmanthus Dim Sum Lounge",
+      "active": true
+    },
+    {
+      "name": "Dumpling Home",
+      "active": true
+    },
+    {
+      "name": "ollei",
+      "active": true
+    },
+    {
+      "name": "Cajun bowl",
+      "active": true
+    },
+    {
+      "name": "Sun and Moon",
+      "active": true
+    },
+    {
+      "name": "GINTO Express",
+      "active": true
+    },
+    {
+      "name": "Plentea",
+      "active": true
+    },
+    {
+      "name": "Wooly Pig",
+      "active": true
+    },
+    {
+      "name": "Raavi",
+      "active": true
+    },
+    {
+      "name": "Lers Ros Thai",
+      "active": true
+    },
+    {
+      "name": "Dabao Singapore",
+      "active": true
+    },
+    {
+      "name": "Pacific Catch",
+      "active": true
+    },
+    {
+      "name": "Maru Sushi",
+      "active": true
+    },
+    {
+      "name": "Sharetea",
+      "active": true
+    },
+    {
+      "name": "LaoTable",
+      "active": true
+    },
+    {
+      "name": "Little Szechuan",
+      "active": true
+    },
+    {
+      "name": "Urban Ritual",
+      "active": true
+    },
+    {
+      "name": "Dumpling story",
+      "active": true
+    },
+    {
+      "name": "Gyu-Kaku Japanese BBQ",
+      "active": true
+    },
+    {
+      "name": "MIXT SALADS",
+      "active": true
+    },
+    {
+      "name": "Dumpling Time",
+      "active": true
+    },
+    {
+      "name": "Taishoken",
+      "active": true
+    },
+    {
+      "name": "SUNGHO",
+      "active": true
+    },
+    {
+      "name": "The Italian Homemade Company",
+      "active": true
+    },
+    {
+      "name": "Purple Rice",
+      "active": true
+    },
+    {
+      "name": "Hummus Mediterranean Kitchen",
+      "active": true
+    },
+    {
+      "name": "Udon Mugizo",
+      "active": true
+    },
+    {
+      "name": "STK Steakhouse",
+      "active": true
+    },
+    {
+      "name": "Perilla",
+      "active": true
+    },
+    {
+      "name": "Pho De Nguyen",
+      "active": true
+    },
+    {
+      "name": "Cafe Okawari",
+      "active": true
+    },
+    {
+      "name": "Oren's Hummus",
+      "active": true
+    },
+    {
+      "name": "Berlin Doner & Kebab House",
+      "active": true
+    },
+    {
+      "name": "Souvla",
+      "active": true
+    },
+    {
+      "name": "Fanoos grills",
+      "active": true
+    },
+    {
+      "name": "Popstar shawarma",
+      "active": true
+    },
+    {
+      "name": "Tony's Pizza Napoletana",
+      "active": true
+    },
+    {
+      "name": "Hot Sauce & Panko",
+      "active": true
+    }
   ]
 }

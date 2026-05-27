@@ -1,9 +1,10 @@
-// Vercel serverless function — receives Slack slash commands for /lunch
+// Vercel serverless function — handles the /lunch slash command and the
+// "Regenerate" button on the daily dinner post.
 
 const crypto = require('crypto');
+const { pickOptions, buildMessage, dayName, PICKS_PER_DAY } = require('../message');
 
 const { SLACK_SIGNING_SECRET, GITHUB_TOKEN, GITHUB_REPO } = process.env;
-const PICKS_PER_DAY = parseInt(process.env.PICKS_PER_DAY || '3', 10);
 
 // ── GitHub helpers ────────────────────────────────────────────────────────────
 
@@ -77,6 +78,145 @@ function readRawBody(req) {
 const ephemeral = text => ({ response_type: 'ephemeral', text });
 const inChannel = text => ({ response_type: 'in_channel', text });
 
+// ── "Regenerate" button ───────────────────────────────────────────────────────
+
+async function handleInteraction(interaction, res) {
+  const action = interaction.actions && interaction.actions[0];
+  if (!action || action.action_id !== 'regenerate') {
+    return res.status(200).end();
+  }
+
+  const { data } = await ghGet();
+  const activeCount = data.restaurants.filter(r => r.active !== false).length;
+
+  if (activeCount === 0) {
+    return res.json(ephemeral('No options in the pool — add some with `/lunch add`'));
+  }
+
+  const picks = pickOptions(data.restaurants, PICKS_PER_DAY);
+  const message = buildMessage({ picks, activeCount, day: dayName() });
+  // replace_original swaps the message the button lives on for fresh picks
+  return res.json({ replace_original: true, ...message });
+}
+
+// ── /lunch slash command ──────────────────────────────────────────────────────
+
+async function handleCommand(payload, res) {
+  const [subcommand = '', ...rest] = (payload.text || '').trim().split(/\s+/);
+  const arg = rest.join(' ').trim();
+
+  switch (subcommand.toLowerCase()) {
+    case '':
+    case 'help': {
+      return res.json(
+        ephemeral(
+          [
+            '*Dinner Bot — available commands:*',
+            '`/lunch list` — show every option (active & removed)',
+            '`/lunch add <name>` — add an option to the master list',
+            '`/lunch remove <name>` — remove an option from the rotation',
+            '`/lunch enable <name>` — bring back a removed option',
+            "`/lunch preview` — preview tonight's random picks",
+          ].join('\n')
+        )
+      );
+    }
+
+    case 'list': {
+      const { data } = await ghGet();
+      const active = data.restaurants.filter(r => r.active !== false);
+      const inactive = data.restaurants.filter(r => r.active === false);
+
+      let text = `*Dinner options — ${active.length} active:*\n`;
+      text += active.length ? active.map(r => `• ${r.name}`).join('\n') : '_none_';
+
+      if (inactive.length) {
+        text += `\n\n*Removed (${inactive.length}):*\n`;
+        text += inactive.map(r => `• ~${r.name}~`).join('\n');
+      }
+
+      return res.json(ephemeral(text));
+    }
+
+    case 'add': {
+      if (!arg) return res.json(ephemeral('Usage: `/lunch add <name>`'));
+
+      const { data, sha } = await ghGet();
+      const existing = data.restaurants.find(
+        r => r.name.toLowerCase() === arg.toLowerCase()
+      );
+
+      if (existing) {
+        if (existing.active === false) {
+          existing.active = true;
+          await ghPut(data, sha, `Re-enable ${arg} via Slack`);
+          return res.json(inChannel(`✅ Brought *${arg}* back into the rotation`));
+        }
+        return res.json(ephemeral(`*${arg}* is already in the list`));
+      }
+
+      data.restaurants.push({ name: arg, active: true });
+      await ghPut(data, sha, `Add ${arg} via Slack`);
+      return res.json(inChannel(`✅ Added *${arg}* to the dinner options`));
+    }
+
+    case 'remove': {
+      if (!arg) return res.json(ephemeral('Usage: `/lunch remove <name>`'));
+
+      const { data, sha } = await ghGet();
+      const restaurant = data.restaurants.find(
+        r => r.name.toLowerCase() === arg.toLowerCase()
+      );
+
+      if (!restaurant) {
+        return res.json(
+          ephemeral(`Couldn't find *${arg}* — use \`/lunch list\` to see all options`)
+        );
+      }
+      if (restaurant.active === false) {
+        return res.json(ephemeral(`*${arg}* is already removed`));
+      }
+
+      restaurant.active = false;
+      await ghPut(data, sha, `Remove ${arg} via Slack`);
+      return res.json(inChannel(`🚫 Removed *${arg}* from the rotation`));
+    }
+
+    case 'enable': {
+      if (!arg) return res.json(ephemeral('Usage: `/lunch enable <name>`'));
+
+      const { data, sha } = await ghGet();
+      const restaurant = data.restaurants.find(
+        r => r.name.toLowerCase() === arg.toLowerCase()
+      );
+
+      if (!restaurant) {
+        return res.json(ephemeral(`Couldn't find *${arg}*`));
+      }
+
+      restaurant.active = true;
+      await ghPut(data, sha, `Enable ${arg} via Slack`);
+      return res.json(inChannel(`✅ Brought *${arg}* back into the rotation`));
+    }
+
+    case 'preview': {
+      const { data } = await ghGet();
+      const activeCount = data.restaurants.filter(r => r.active !== false).length;
+
+      if (activeCount === 0) {
+        return res.json(ephemeral('No options yet — add some with `/lunch add`'));
+      }
+
+      const picks = pickOptions(data.restaurants, PICKS_PER_DAY);
+      const message = buildMessage({ picks, activeCount, day: dayName() });
+      return res.json({ response_type: 'ephemeral', ...message });
+    }
+
+    default:
+      return res.json(ephemeral(`Unknown command \`${subcommand}\` — try \`/lunch help\``));
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 async function handler(req, res) {
@@ -101,134 +241,18 @@ async function handler(req, res) {
     }
 
     const payload = Object.fromEntries(new URLSearchParams(rawBody));
-    const [subcommand = '', ...rest] = (payload.text || '').trim().split(/\s+/);
-    const arg = rest.join(' ').trim();
 
     try {
-    switch (subcommand.toLowerCase()) {
-      case '':
-      case 'help': {
-        return res.json(
-          ephemeral(
-            [
-              '*Lunch Bot — available commands:*',
-              '`/lunch list` — show all restaurants (active & inactive)',
-              '`/lunch add <name> | <url>` — add a restaurant (URL optional)',
-              '`/lunch remove <name>` — remove a restaurant from the rotation',
-              '`/lunch enable <name>` — re-enable a previously removed restaurant',
-              '`/lunch preview` — preview what today\'s picks would look like',
-            ].join('\n')
-          )
-        );
+      // Interactive component (button click) arrives as payload=<json>
+      if (payload.payload) {
+        const interaction = JSON.parse(payload.payload);
+        if (interaction.type === 'block_actions') {
+          return await handleInteraction(interaction, res);
+        }
+        return res.status(200).end();
       }
 
-      case 'list': {
-        const { data } = await ghGet();
-        const active = data.restaurants.filter(r => r.active !== false);
-        const inactive = data.restaurants.filter(r => r.active === false);
-
-        let text = `*Restaurants — ${active.length} active:*\n`;
-        text += active.length
-          ? active.map(r => `• ${r.name}${r.url ? `  <${r.url}|link>` : ''}`).join('\n')
-          : '_none_';
-
-        if (inactive.length) {
-          text += `\n\n*Inactive (${inactive.length}):*\n`;
-          text += inactive.map(r => `• ~${r.name}~`).join('\n');
-        }
-
-        return res.json(ephemeral(text));
-      }
-
-      case 'add': {
-        const [namePart, urlPart] = arg.split('|').map(s => s.trim());
-        if (!namePart) {
-          return res.json(ephemeral('Usage: `/lunch add <name> | <url>`'));
-        }
-
-        const { data, sha } = await ghGet();
-        const existing = data.restaurants.find(
-          r => r.name.toLowerCase() === namePart.toLowerCase()
-        );
-
-        if (existing) {
-          if (existing.active === false) {
-            existing.active = true;
-            if (urlPart) existing.url = urlPart;
-            await ghPut(data, sha, `Re-enable ${namePart} via Slack`);
-            return res.json(inChannel(`✅ Re-enabled *${namePart}* in the lunch rotation`));
-          }
-          return res.json(ephemeral(`*${namePart}* is already in the list`));
-        }
-
-        data.restaurants.push({ name: namePart, url: urlPart || '', active: true });
-        await ghPut(data, sha, `Add ${namePart} via Slack`);
-        return res.json(inChannel(`✅ Added *${namePart}* to the lunch rotation`));
-      }
-
-      case 'remove': {
-        if (!arg) return res.json(ephemeral('Usage: `/lunch remove <name>`'));
-
-        const { data, sha } = await ghGet();
-        const restaurant = data.restaurants.find(
-          r => r.name.toLowerCase() === arg.toLowerCase()
-        );
-
-        if (!restaurant) {
-          return res.json(
-            ephemeral(`Couldn't find *${arg}* — use \`/lunch list\` to see all options`)
-          );
-        }
-        if (restaurant.active === false) {
-          return res.json(ephemeral(`*${arg}* is already inactive`));
-        }
-
-        restaurant.active = false;
-        await ghPut(data, sha, `Remove ${arg} via Slack`);
-        return res.json(inChannel(`🚫 Removed *${arg}* from the rotation`));
-      }
-
-      case 'enable': {
-        if (!arg) return res.json(ephemeral('Usage: `/lunch enable <name>`'));
-
-        const { data, sha } = await ghGet();
-        const restaurant = data.restaurants.find(
-          r => r.name.toLowerCase() === arg.toLowerCase()
-        );
-
-        if (!restaurant) {
-          return res.json(ephemeral(`Couldn't find *${arg}*`));
-        }
-
-        restaurant.active = true;
-        await ghPut(data, sha, `Enable ${arg} via Slack`);
-        return res.json(inChannel(`✅ Re-enabled *${arg}* in the rotation`));
-      }
-
-      case 'preview': {
-        const { data } = await ghGet();
-        const active = data.restaurants.filter(r => r.active !== false);
-
-        if (active.length === 0) {
-          return res.json(ephemeral('No active restaurants — add some with `/lunch add`'));
-        }
-
-        // Shuffle and pick
-        const picks = [...active].sort(() => Math.random() - 0.5).slice(0, PICKS_PER_DAY);
-        const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
-        const lines = picks.map((r, i) => {
-          const e = emojis[i] || `${i + 1}.`;
-          return r.url ? `${e} *${r.name}* — <${r.url}|Order on DoorDash>` : `${e} *${r.name}*`;
-        });
-
-        return res.json(
-          ephemeral(`*Preview (only you can see this):*\n\n${lines.join('\n')}`)
-        );
-      }
-
-      default:
-        return res.json(ephemeral(`Unknown command \`${subcommand}\` — try \`/lunch help\``));
-    }
+      return await handleCommand(payload, res);
     } catch (err) {
       console.error(err);
       return res.status(200).json(ephemeral(`⚠️ Error: ${err.message}`));
