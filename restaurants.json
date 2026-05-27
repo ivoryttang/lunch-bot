@@ -281,6 +281,11 @@
       "name": "Shanghai Dumpling King",
       "url": "",
       "active": true
+    },
+    {
+      "name": "Sanppo Restaurant",
+      "url": "",
+      "active": true
     }
   ]
 }
