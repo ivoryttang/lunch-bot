@@ -276,6 +276,11 @@
       "name": "Arepas",
       "url": "",
       "active": true
+    },
+    {
+      "name": "Shanghai Dumpling King",
+      "url": "",
+      "active": true
     }
   ]
 }
