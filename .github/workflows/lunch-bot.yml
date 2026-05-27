@@ -21,5 +21,10 @@ jobs:
       - name: Post to Slack
         run: node bot.js
         env:
+          # Bot token + channel enable reaction voting; webhook is the fallback.
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GH_CONTENTS_TOKEN || github.token }}
+          GITHUB_REPO: ${{ github.repository }}
           PICKS_PER_DAY: 2
