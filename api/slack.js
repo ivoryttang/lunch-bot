@@ -100,6 +100,13 @@ async function handleEvent(event, res) {
     return res.status(200).end();
   }
 
+  // Ignore the bot reacting to its own post — bot.js seeds 1️⃣/2️⃣ to make
+  // voting one tap, and we don't want those seeds to count as votes. The post's
+  // author is always the bot, so reactor === author means it's a seed, not a vote.
+  if (event.user && event.item_user && event.user === event.item_user) {
+    return res.status(200).end();
+  }
+
   const idx = reactionIndex(event.reaction);
   const ts = event.item && event.item.ts;
   if (idx < 0 || !ts) return res.status(200).end();
