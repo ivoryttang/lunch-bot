@@ -93,11 +93,16 @@ Anyone in the channel can run these:
 | Command | What it does |
 |---|---|
 | `/lunch list` | Show every option (active + removed) |
-| `/lunch add Tacko` | Add an option to the master list |
+| `/lunch add Tacko` | Add an option (rejects likely duplicates — see below) |
+| `/lunch add! Tacko` | Force-add even if it looks like a duplicate |
 | `/lunch remove Tacko` | Remove an option from the rotation (soft delete) |
 | `/lunch enable Tacko` | Bring back a removed option |
 | `/lunch preview` | Preview tonight's random picks (only you see it) |
 | `/lunch help` | Show all commands |
+
+## Duplicate detection
+
+`/lunch add` runs the candidate through fuzzy matching (`dedupe.js`) before adding it, so you can't pile up the same place twice. It catches casing, punctuation, and spacing variants (`Gott's Roadside` = `gotts roadside`, `Sweet Green` = `Sweetgreen`), single-character typos (`Marafuku` ≈ `Marufuku`), and prefixes (`Roam` ≈ `Roam Artisan Burgers`). It's deliberately tight, so genuinely different lookalikes stay separate (`Dumpling Home`, `Dumpling Time`, and `Dumpling House` are all distinct). If it flags something that really is new, add it with `/lunch add! <name>`.
 
 ## Editing the list directly
 

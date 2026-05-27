@@ -3,6 +3,7 @@
 
 const crypto = require('crypto');
 const { pickOptions, buildMessage, dayName, PICKS_PER_DAY } = require('../message');
+const { findMatch } = require('../dedupe');
 
 const { SLACK_SIGNING_SECRET, GITHUB_TOKEN, GITHUB_REPO } = process.env;
 
@@ -113,7 +114,7 @@ async function handleCommand(payload, res) {
           [
             '*Dinner Bot — available commands:*',
             '`/lunch list` — show every option (active & removed)',
-            '`/lunch add <name>` — add an option to the master list',
+            '`/lunch add <name>` — add an option (warns on likely duplicates)',
             '`/lunch remove <name>` — remove an option from the rotation',
             '`/lunch enable <name>` — bring back a removed option',
             "`/lunch preview` — preview tonight's random picks",
@@ -138,26 +139,48 @@ async function handleCommand(payload, res) {
       return res.json(ephemeral(text));
     }
 
-    case 'add': {
-      if (!arg) return res.json(ephemeral('Usage: `/lunch add <name>`'));
-
-      const { data, sha } = await ghGet();
-      const existing = data.restaurants.find(
-        r => r.name.toLowerCase() === arg.toLowerCase()
-      );
-
-      if (existing) {
-        if (existing.active === false) {
-          existing.active = true;
-          await ghPut(data, sha, `Re-enable ${arg} via Slack`);
-          return res.json(inChannel(`✅ Brought *${arg}* back into the rotation`));
-        }
-        return res.json(ephemeral(`*${arg}* is already in the list`));
+    case 'add':
+    case 'add!': {
+      // `add!` (or a leading -f/--force flag) bypasses the fuzzy duplicate check
+      let force = subcommand.toLowerCase() === 'add!';
+      let name = arg;
+      const flag = name.match(/^(?:-f|--force)\s+(.*)$/i);
+      if (flag) {
+        force = true;
+        name = flag[1].trim();
       }
 
-      data.restaurants.push({ name: arg, active: true });
-      await ghPut(data, sha, `Add ${arg} via Slack`);
-      return res.json(inChannel(`✅ Added *${arg}* to the dinner options`));
+      if (!name) return res.json(ephemeral('Usage: `/lunch add <name>`'));
+
+      const { data, sha } = await ghGet();
+      const match = findMatch(name, data.restaurants);
+
+      // Exact match (after normalizing case/punctuation): already in the list.
+      if (match && match.exact) {
+        const existing = match.restaurant;
+        if (existing.active === false) {
+          existing.active = true;
+          await ghPut(data, sha, `Re-enable ${existing.name} via Slack`);
+          return res.json(inChannel(`✅ Brought *${existing.name}* back into the rotation`));
+        }
+        return res.json(ephemeral(`*${existing.name}* is already in the list`));
+      }
+
+      // Fuzzy near-match: surface the suspected duplicate, let the user force it.
+      if (match && !force) {
+        const existing = match.restaurant;
+        const hint =
+          existing.active === false
+            ? `It's currently removed — \`/lunch enable ${existing.name}\` brings it back, or \`/lunch add! ${name}\` adds it as new.`
+            : `If *${name}* is actually different, run \`/lunch add! ${name}\` to add it anyway.`;
+        return res.json(
+          ephemeral(`🤔 *${name}* looks like a possible duplicate of *${existing.name}*. ${hint}`)
+        );
+      }
+
+      data.restaurants.push({ name, active: true });
+      await ghPut(data, sha, `Add ${name} via Slack`);
+      return res.json(inChannel(`✅ Added *${name}* to the dinner options`));
     }
 
     case 'remove': {
