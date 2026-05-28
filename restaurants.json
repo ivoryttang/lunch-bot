@@ -271,7 +271,8 @@
     },
     {
       "name": "Hot Sauce & Panko",
-      "active": true
+      "active": true,
+      "votes": 1
     },
     {
       "name": "Arepas",
