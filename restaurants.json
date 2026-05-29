@@ -300,6 +300,10 @@
     {
       "name": "Tin at 180 Spear",
       "active": true
+    },
+    {
+      "name": "Turtle Tower",
+      "active": true
     }
   ]
 }
