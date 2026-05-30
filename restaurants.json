@@ -86,7 +86,8 @@
     },
     {
       "name": "Ben Thai Cafe",
-      "active": true
+      "active": true,
+      "votes": 1
     },
     {
       "name": "Onigilly Japanese Kitchen",
