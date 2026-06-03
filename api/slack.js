@@ -51,6 +51,19 @@ function readRawBody(req) {
 const ephemeral = text => ({ response_type: 'ephemeral', text });
 const inChannel = text => ({ response_type: 'in_channel', text });
 
+// Replacing a message that was posted via chat.postMessage requires POSTing the
+// new content to the interaction's response_url — for block_actions Slack
+// ignores the message in the direct HTTP reply (that reply only acks the click).
+async function postToResponseUrl(url, body) {
+  if (!url) return;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`response_url POST failed: ${r.status} ${await r.text()}`);
+}
+
 // ── "Regenerate" button ───────────────────────────────────────────────────────
 
 async function handleInteraction(interaction, res) {
@@ -63,14 +76,19 @@ async function handleInteraction(interaction, res) {
   const activeCount = data.restaurants.filter(r => r.active !== false).length;
 
   if (activeCount === 0) {
-    return res.json(ephemeral('No options in the pool — add some with `/lunch add`'));
+    // A new ephemeral (replace_original: false) so a misfire doesn't nuke the poll.
+    await postToResponseUrl(interaction.response_url, {
+      replace_original: false,
+      ...ephemeral('No options in the pool — add some with `/lunch add`'),
+    }).catch(err => console.error(err.message));
+    return res.status(200).end();
   }
 
   const picks = pickOptions(data.restaurants, PICKS_PER_DAY);
   const message = buildMessage({ picks, activeCount, day: dayName() });
 
-  // The message keeps its ts after replace_original, so re-point the poll
-  // mapping at the new picks — number reactions then vote for these instead.
+  // replace_original keeps the same ts, so re-point the poll mapping at the new
+  // picks — the already-seeded number reactions then vote for these instead.
   const ts = interaction.message && interaction.message.ts;
   if (ts) {
     await updateJson(
@@ -84,8 +102,14 @@ async function handleInteraction(interaction, res) {
     ).catch(err => console.error(`poll update failed: ${err.message}`));
   }
 
-  // replace_original swaps the message the button lives on for fresh picks
-  return res.json({ replace_original: true, ...message });
+  // Swap the message the button lives on for fresh picks. It was posted via
+  // chat.postMessage, so this must go through response_url, not the HTTP reply.
+  await postToResponseUrl(interaction.response_url, {
+    replace_original: true,
+    ...message,
+  }).catch(err => console.error(`regenerate replace failed: ${err.message}`));
+
+  return res.status(200).end();
 }
 
 // ── Reaction voting (Slack Events API) ────────────────────────────────────────
