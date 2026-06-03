@@ -30,7 +30,8 @@
     },
     {
       "name": "Curry Up Now",
-      "active": true
+      "active": true,
+      "votes": 1
     },
     {
       "name": "Little Sweet",
