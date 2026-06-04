@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lunch-bot-daily
+spec:
+  schedule: "30 18 * * *"
+  timeZone: "America/Los_Angeles"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: lunch-bot
+              image: 257656108212.dkr.ecr.us-west-2.amazonaws.com/images/test:lunch-bot
+              imagePullPolicy: Always
+              command: ["node", "bot.js"]
+              envFrom:
+                - secretRef:
+                    name: lunch-bot-secrets

@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-const fs = require('fs');
 const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { pickOptions, buildMessage, dayName, PICKS_PER_DAY, NUMBER_REACTIONS } = require('./message');
-const { updateJson } = require('./github');
+const { getJson, updateJson } = require('./github');
 
 const BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
 const CHANNEL = process.env.SLACK_CHANNEL;
@@ -45,9 +44,12 @@ async function recordPoll(ts, names) {
 }
 
 async function main() {
-  const { restaurants } = JSON.parse(
-    fs.readFileSync(path.join(__dirname, 'restaurants.json'), 'utf8')
-  );
+  if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
+    throw new Error('Set GITHUB_TOKEN + GITHUB_REPO to read restaurants.json from GitHub');
+  }
+
+  const { data } = await getJson('restaurants.json', { restaurants: [] });
+  const { restaurants } = data;
 
   const activeCount = restaurants.filter(r => r.active !== false).length;
   const picks = pickOptions(restaurants, PICKS_PER_DAY);

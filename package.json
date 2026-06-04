@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "node server.js",
     "post": "node bot.js",
     "dev": "vercel dev"
   },

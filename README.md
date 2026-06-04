@@ -76,6 +76,25 @@ git commit -m "dinner bot"
 git push
 ```
 
+### Docker / Kubernetes
+
+Build and run the Slack HTTP endpoint:
+
+```bash
+docker build -t lunch-bot .
+docker run --rm -p 3000:3000 \
+  -e SLACK_SIGNING_SECRET=your-signing-secret \
+  -e GITHUB_TOKEN=your-github-token \
+  -e GITHUB_REPO=your-username/lunch-bot \
+  -e PICKS_PER_DAY=2 \
+  lunch-bot
+```
+
+Point Slack slash commands, interactivity, and events at `https://YOUR-K8S-HOST/slack`.
+The container listens on `PORT` (default `3000`) and exposes `GET /healthz` for Kubernetes probes.
+
+For the daily post in Kubernetes, use the same image as a CronJob with command `node bot.js` and set `SLACK_BOT_TOKEN`, `SLACK_CHANNEL`, `GITHUB_TOKEN`, `GITHUB_REPO`, and `PICKS_PER_DAY`. `bot.js` reads `restaurants.json` from GitHub before posting and records poll mappings back to GitHub.
+
 ### 4. Schedule the daily post (local Mac, launchd)
 
 `bot.js` posts the daily message. Put these in `.env` (local, gitignored):
@@ -83,7 +102,7 @@ git push
 ```
 SLACK_BOT_TOKEN   xoxb-…              (enables voting)
 SLACK_CHANNEL     C0123ABCD           (the channel ID to post in)
-GITHUB_TOKEN      your GitHub PAT     (to record poll mappings)
+GITHUB_TOKEN      your GitHub PAT     (to read restaurants and record poll mappings)
 GITHUB_REPO       your-username/lunch-bot
 PICKS_PER_DAY     2
 ```
