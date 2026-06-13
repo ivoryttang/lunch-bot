@@ -1,9 +1,5 @@
 {
   "polls": {
-    "1779850927.622989": [
-      "Shanghai Dumpling King",
-      "Curry Up Now"
-    ],
     "1779931806.479199": [
       "Pho De Nguyen",
       "Hot Sauce & Panko"
@@ -119,6 +115,10 @@
     "1781314201.643329": [
       "Palmetto Superfoods",
       "STK Steakhouse"
+    ],
+    "1781314227.973339": [
+      "Delarosa",
+      "Hummus Mediterranean Kitchen"
     ]
   }
 }
