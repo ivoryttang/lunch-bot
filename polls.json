@@ -1,9 +1,5 @@
 {
   "polls": {
-    "1780018205.159449": [
-      "Cafe Okawari",
-      "Super Duper Burgers"
-    ],
     "1780104606.170879": [
       "Ben Thai Cafe",
       "Hot Sauce & Panko"
@@ -119,6 +115,10 @@
     "1781400601.829159": [
       "Maru Sushi",
       "Sweetgreen"
+    ],
+    "1781400625.219409": [
+      "Raavi",
+      "Oren's Hummus"
     ]
   }
 }
