@@ -1,9 +1,5 @@
 {
   "polls": {
-    "1779931806.479199": [
-      "Pho De Nguyen",
-      "Hot Sauce & Panko"
-    ],
     "1780018205.159449": [
       "Cafe Okawari",
       "Super Duper Burgers"
@@ -119,6 +115,10 @@
     "1781314227.973339": [
       "Delarosa",
       "Hummus Mediterranean Kitchen"
+    ],
+    "1781400601.829159": [
+      "Maru Sushi",
+      "Sweetgreen"
     ]
   }
 }
