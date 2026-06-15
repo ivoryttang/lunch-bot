@@ -1,9 +1,5 @@
 {
   "polls": {
-    "1780104606.170879": [
-      "Ben Thai Cafe",
-      "Hot Sauce & Panko"
-    ],
     "1780191002.207519": [
       "Perilla",
       "Osmanthus Dim Sum Lounge"
@@ -119,6 +115,10 @@
     "1781400625.219409": [
       "Raavi",
       "Oren's Hummus"
+    ],
+    "1781487002.046779": [
+      "Aria Korean Street Food",
+      "Sanppo Restaurant"
     ]
   }
 }
